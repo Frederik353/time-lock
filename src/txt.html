@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time Lock</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23000'/><path d='M11 15v-4a5 5 0 0 1 10 0v4' fill='none' stroke='%23fff' stroke-width='2.4'/><rect x='8' y='15' width='16' height='11' rx='2' fill='%23fff'/><rect x='15' y='19' width='2' height='4' fill='%23000'/></svg>">
+<style>
+  /* Black and white only, styled like a plain text file: one weight, no bold, no borders, no underlines. */
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { background: #000; color: #fff; max-width: 100%; overflow-x: hidden; }
+  body {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 15px; line-height: 1.8; font-weight: 400; margin: 0;
+  }
+  .wrap {
+    max-width: 460px; margin: 0 auto;
+    padding-left: max(18px, env(safe-area-inset-left,0px));
+    padding-right: max(18px, env(safe-area-inset-right,0px));
+    padding-block: 30px 48px;
+  }
+  p, h1, h2, div { font-weight: 400; margin: 0; }
+  .blank { height: 1.8em; }
+  .line { margin-top: 9px; }
+  .title { font-weight: 700; }
+  .nowrap { white-space: nowrap; }
+  .title { font-weight: 700; }
+
+  /* toggles + text actions: bracket when active, invert on hover/focus */
+  .tog, .act {
+    appearance: none; background: none; border: 0; cursor: pointer;
+    font: inherit; color: #fff; padding: 0 2px; margin: 0;
+  }
+  .tog { margin-right: 10px; }
+  .tog[aria-current="true"]::before, .act.sel::before { content: "["; }
+  .tog[aria-current="true"]::after,  .act.sel::after  { content: "]"; }
+  .tog:hover, .act:hover, .tog:focus-visible, .act:focus-visible { background: #fff; color: #000; }
+  .act:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* text inputs: underlined so they clearly read as fields */
+  .io { display: flex; gap: 10px; align-items: baseline; }
+  .io > .k { flex: none; }
+  .ii {
+    flex: 1; min-width: 0; border: 0; border-bottom: 1px solid #fff; background: transparent;
+    color: #fff; font: inherit; padding: 1px 2px; outline: none; caret-color: #fff;
+  }
+  .ii:focus { border-bottom-width: 2px; }
+  .ii.sm { flex: none; width: 7ch; }
+  ::placeholder { color: #fff; opacity: .5; }
+
+  .k { font-weight: 700; }     /* field labels, bold */
+  .click { cursor: pointer; word-break: break-all; white-space: pre-wrap; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+  .click:hover { background: #fff; color: #000; }
+  a.act { text-decoration: underline; text-underline-offset: 3px; }
+  .msg { min-height: 1.8em; }
+  .bar { white-space: nowrap; letter-spacing: 1px; }
+  .more { margin-top: 30px; }
+
+  #view-math .eq { margin: 0 0 12px; padding-left: 14px; border-left: 1px solid #fff; }
+  [hidden] { display: none !important; }
+</style>
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Time Lock">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ MAIN ============ -->
+  <div id="view-main">
+    <div class="title">time lock</div>
+    <div class="blank"></div>
+
+    <div class="line">
+      <button class="tog" id="tab-lock" aria-current="true">lock</button><button class="tog" id="tab-unlock" aria-current="false">unlock</button>
+    </div>
+    <div class="blank"></div>
+
+    <!-- LOCK -->
+    <section id="panel-lock">
+      <div class="line io"><span class="k">secret</span><input id="plain" class="ii" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…"></div>
+
+      <div class="line" id="presets"><span class="k">duration</span>&nbsp;
+        <button class="tog" data-min="5" aria-current="true">5m</button><button class="tog" data-min="15">15m</button><button class="tog" data-min="30">30m</button><button class="tog" data-min="60">1h</button><button class="tog" data-min="120">2h</button><span class="nowrap"><span class="k">custom</span> <input id="custom" class="ii sm" type="number" min="0.05" step="0.05" inputmode="decimal" value="5" placeholder="…"> <span class="k">min</span></span>
+      </div>
+
+      <div class="line"><span class="k">on leave</span>&nbsp;
+        <button class="tog" id="m-strict" data-mode="0" aria-current="true">reset</button><button class="tog" id="m-lenient" data-mode="1">pause</button>
+      </div>
+
+      <div class="blank"></div>
+      <div class="line"><button class="act" id="lock-btn">lock it</button></div>
+      <div class="msg" id="lock-status" aria-live="polite"></div>
+
+      <div id="lock-out-wrap" hidden>
+        <div class="k" id="lock-out-label" aria-live="polite">token</div>
+        <div class="click" id="lock-out"></div>
+      </div>
+    </section>
+
+    <!-- UNLOCK -->
+    <section id="panel-unlock" hidden>
+      <div class="line io"><span class="k">token</span><input id="token-in" class="ii" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…"></div>
+      <div class="blank"></div>
+      <div class="line"><button class="act" id="unlock-btn">unlock</button><button class="act" id="cancel-btn" style="margin-left:14px" hidden>cancel</button></div>
+      <div class="msg" id="unlock-msg" aria-live="polite"></div>
+
+      <div id="prog" hidden>
+        <div id="mode-note"></div>
+        <div class="blank"></div>
+        <div>remaining <span id="st-eta">--:--</span></div>
+        <div class="bar" id="bar-txt"></div>
+        <div><span id="st-pct">0%</span>&nbsp;&nbsp;elapsed <span id="st-elapsed">0:00</span></div>
+      </div>
+
+      <div id="reveal" hidden>
+        <div class="k" id="reveal-label" aria-live="polite">secret</div>
+        <div class="click" id="reveal-pw"></div>
+      </div>
+    </section>
+
+    <div class="more"><a class="act" href="#math">more</a></div>
+  </div>
+
+  <!-- ============ MATH ============ -->
+  <div id="view-math" hidden>
+    <div class="title">time lock: the math</div>
+    <div class="blank"></div>
+    <p>A time lock seals a short secret so that getting it back always costs a fixed stretch of waiting. It is not a password you can forget; it is a delay you have to sit through. It is built to outlast a bored impulse, not a determined attacker.</p>
+    <p>Locking picks two random ~1024-bit primes (Miller-Rabin tested) and multiplies them into a ~2048-bit modulus, along with a random base g:</p>
+    <div class="eq">N = p · q&nbsp;&nbsp;&nbsp;(p, q ≈ 1024-bit primes)</div>
+    <p>The answer is a single number, reached by squaring g a huge number of times, t of them:</p>
+    <div class="eq">key = g^(2ᵗ) mod N</div>
+    <p>Locking knows the factors, so it knows φ(N) = (p−1)(q−1) and takes Euler's shortcut: shrink the exponent first, then one modular exponentiation lands on the key instantly.</p>
+    <div class="eq">e = 2ᵗ mod φ(N)<br>key = gᵉ mod N</div>
+    <p>Then it throws p, q and φ(N) away. Unlocking is left with only N, g and t. With no factors there is no shortcut. The only known route to the key is to actually walk the t squarings, one after another:</p>
+    <div class="eq">x₀ = g<br>xᵢ = xᵢ₋₁² mod N<br>key = xₜ</div>
+    <p>Each square needs the one before it, so the work is inherently sequential: more cores, a GPU, splitting it up, none of it helps. That unavoidable chain is the delay. (The Rivest-Shamir-Wagner time-lock puzzle, 1996.)</p>
+    <p>How big is t? When you lock, it measures how many squarings per second this machine manages and sets t = rate × seconds. The wait is calibrated to the device you lock on, and it is honest about hardware: unlock on something much faster and it finishes sooner.</p>
+    <p>The secret itself is encrypted with AES-GCM under key = SHA-256(xₜ). The reset/pause choice is mixed into GCM's authenticated data, so flipping that flag in the token makes the final decryption fail. You change the behaviour by rewriting this page, not by editing the token.</p>
+    <p>reset wipes all progress if you leave the tab, so an impulse costs you the whole wait again; pause only stops the clock, for long locks where you still need the phone. Either way the screen is kept awake while it grinds.</p>
+    <p>Friction, not a vault: the token isn't secret, and faster hardware or code could solve it quicker. Everything runs in your browser; nothing is ever sent anywhere.</p>
+    <div class="more"><a class="act" href="#">back</a></div>
+  </div>
+
+</div>
+
+<script src="core.js"></script>
+<script src="txt.js"></script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="theme-color" content="#191917" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Time Lock</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='5' fill='%23111110'/><rect x='5' y='5' width='5' height='5' fill='%23edece6'/><rect x='13' y='5' width='5' height='5' fill='%23ff603f'/><rect x='21' y='5' width='5' height='5' fill='%238f8c7f'/><rect x='5' y='13' width='5' height='5' fill='%235c5a51'/><rect x='13' y='13' width='5' height='5' fill='%23cfcdc3'/><rect x='21' y='13' width='5' height='5' fill='%23d23c1a'/><rect x='5' y='21' width='5' height='5' fill='%238f8c7f'/><rect x='13' y='21' width='5' height='5' fill='%23edece6'/><rect x='21' y='21' width='5' height='5' fill='%23cfcdc3'/></svg>"
+    />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Time Lock" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="device" id="view-main">
+        <header>
+          <a class="brand" href="#" aria-label="Time Lock home">
+            <span class="dot"></span>
+            <h1>Time&nbsp;Lock</h1>
+          </a>
+          <div class="meta">
+            <span class="model">TL&middot;2</span><br />offline unit
+          </div>
+        </header>
+
+        <div
+          class="tabs"
+          id="tabs"
+          data-active="lock"
+          role="tablist"
+          aria-label="Mode"
+        >
+          <button
+            id="tab-lock"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-lock"
+          >
+            Lock
+          </button>
+          <button
+            id="tab-unlock"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-unlock"
+          >
+            Unlock
+          </button>
+        </div>
+
+        <div class="panels">
+          <!-- LOCK -->
+          <section
+            class="pane"
+            id="panel-lock"
+            role="tabpanel"
+            aria-labelledby="tab-lock"
+          >
+            <div class="controls">
+              <label class="field">
+                <span class="lbl">Secret</span>
+                <span class="paste-field">
+                  <textarea
+                    id="plain"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="e.g. your screen-time passcode"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="paste"
+                    id="paste-secret-btn"
+                    aria-label="Paste secret"
+                    title="Paste from clipboard"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect
+                        x="8"
+                        y="3"
+                        width="8"
+                        height="4"
+                        rx="1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <path
+                        d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H15"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </span>
+              </label>
+              <div class="field">
+                <span class="lbl">Unlock time</span>
+                <div class="dur">
+                  <input
+                    id="minutes"
+                    type="number"
+                    min="0.05"
+                    step="0.05"
+                    value="5"
+                    inputmode="decimal"
+                    aria-label="minutes"
+                  />
+                  <span class="note">minutes</span>
+                  <div class="presets" id="dur-chips">
+                    <button class="preset" data-min="0.25">15s</button>
+                    <button class="preset" data-min="5" aria-pressed="true">
+                      5m
+                    </button>
+                    <button class="preset" data-min="15">15m</button>
+                    <button class="preset" data-min="30">30m</button>
+                    <button class="preset" data-min="60">1h</button>
+                    <button class="preset" data-min="120">2h</button>
+                  </div>
+                </div>
+                <p class="note">Calibrated for this device</p>
+              </div>
+              <div class="field">
+                <span class="lbl">On leave</span>
+                <div class="presets" id="mode-chips">
+                  <button class="preset" data-mode="0" aria-pressed="true">
+                    Reset to zero
+                  </button>
+                  <button class="preset" data-mode="1" aria-pressed="false">
+                    Pause &amp; resume
+                  </button>
+                </div>
+              </div>
+              <div class="row">
+                <button class="go" id="lock-btn">Lock it</button>
+              </div>
+            </div>
+            <div class="display">
+              <div class="field">
+                <span class="lbl">Token</span>
+                <div class="screen lock-screen" id="lock-screen">
+                  <div class="scr-actions" id="lock-actions" hidden>
+                    <button
+                      type="button"
+                      class="scr-btn"
+                      id="copy-btn"
+                      aria-label="Copy token"
+                      title="Copy token"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect
+                          x="9"
+                          y="9"
+                          width="11"
+                          height="11"
+                          rx="2"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M5 15V5a2 2 0 0 1 2-2h8"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="screen-msg" id="lock-msg">
+                    <span class="idle-led static"></span
+                    ><span id="lock-msg-txt">awaiting lock</span>
+                  </div>
+                  <div class="lock-done" id="lock-done" hidden>
+                    <div class="out-head" id="lock-head"></div>
+                    <div class="out" id="lock-out"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="display-foot">
+                <span
+                  class="note good"
+                  id="copy-status"
+                  aria-live="polite"
+                ></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- UNLOCK -->
+          <section
+            class="pane inactive"
+            id="panel-unlock"
+            role="tabpanel"
+            aria-labelledby="tab-unlock"
+            aria-hidden="true"
+          >
+            <div class="controls">
+              <label class="field">
+                <span class="lbl">Token</span>
+                <span class="paste-field">
+                  <textarea
+                    id="token-in"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="TL2...."
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="paste"
+                    id="paste-btn"
+                    aria-label="Paste token"
+                    title="Paste from clipboard"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect
+                        x="8"
+                        y="3"
+                        width="8"
+                        height="4"
+                        rx="1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                      <path
+                        d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H15"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </span>
+              </label>
+              <div class="row">
+                <button class="go" id="unlock-btn">Unlock</button>
+                <button class="minor" id="cancel-btn" hidden>Cancel</button>
+              </div>
+              <p class="note" id="unlock-msg" aria-live="polite"></p>
+            </div>
+            <div class="display">
+              <div class="field">
+                <span class="lbl">Live</span>
+                <div class="screen" id="screen">
+                  <button
+                    class="fs"
+                    id="fs-btn"
+                    type="button"
+                    aria-label="Fullscreen"
+                    title="Fullscreen"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <div class="scr-actions" id="reveal" hidden>
+                    <button
+                      type="button"
+                      class="scr-btn"
+                      id="toggle-pw"
+                      aria-pressed="false"
+                      aria-label="Reveal secret"
+                      title="Reveal secret"
+                    >
+                      <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linejoin="round"
+                        />
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="3"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        />
+                      </svg>
+                      <svg
+                        class="ic-off"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M4 4l16 16M10.7 6.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 3.9M6.5 7.3A16.6 16.6 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 3.5-.6"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="scr-btn"
+                      id="copy-pw"
+                      aria-label="Copy secret"
+                      title="Copy secret"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect
+                          x="9"
+                          y="9"
+                          width="11"
+                          height="11"
+                          rx="2"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M5 15V5a2 2 0 0 1 2-2h8"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="hero" id="hero">
+                    <div class="viz-wrap">
+                      <canvas
+                        id="viz"
+                        width="200"
+                        height="200"
+                        aria-hidden="true"
+                      ></canvas>
+                      <span class="viz-cap">live state · xᵢ = xᵢ₋₁² mod N</span>
+                    </div>
+                    <div class="count" id="count">
+                      <span class="k"
+                        ><span class="led"></span>Time remaining</span
+                      >
+                      <span class="v" id="st-eta">--:--</span>
+                      <div class="prog"><span id="bar-fill"></span></div>
+                      <div class="foot">
+                        <span id="st-pct">0%</span
+                        ><span>elapsed&nbsp;<b id="st-elapsed">0:00</b></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="screen-idle" id="screen-idle" aria-hidden="true">
+                    <span class="idle-led"></span
+                    ><span class="idle-txt"
+                      >standby<span class="cursor">_</span></span
+                    >
+                  </div>
+                  <div class="lock-done" id="out-screen" hidden>
+                    <div class="out-head">unlocked</div>
+                    <div
+                      class="out pw-out"
+                      id="reveal-pw"
+                      data-masked="true"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div class="display-foot">
+                <p class="hold" id="hold-note"></p>
+                <span
+                  class="note good"
+                  id="copy-pw-status"
+                  aria-live="polite"
+                ></span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="morelink"><a href="#math">more →</a></div>
+      </div>
+
+      <!-- MATH / MORE PAGE -->
+      <div class="device" id="view-math" hidden>
+        <header>
+          <a class="brand" href="#" aria-label="Back to Time Lock">
+            <span class="dot"></span>
+            <h1>The&nbsp;Math</h1>
+          </a>
+          <div class="meta">
+            <span class="model">TL&middot;2</span><br />how it works
+          </div>
+        </header>
+        <div class="prose">
+          <p>
+            A time lock encrypts a short secret so that getting it back takes a
+            fixed amount of waiting. It’s meant to stop you acting on a whim.
+            Someone determined to get in can still get in.
+          </p>
+          <p>
+            Locking picks two random ~1024-bit primes (Miller-Rabin tested) and
+            multiplies them into a ~2048-bit modulus, along with a random base
+            <strong>g</strong>:
+          </p>
+          <div class="eq">
+            N = p · q&nbsp;&nbsp;&nbsp;(p, q ≈ 1024-bit primes)
+          </div>
+          <p>
+            The answer is a single number, reached by squaring g a huge number
+            of times, <strong>t</strong> of them:
+          </p>
+          <div class="eq">key = g^(2ᵗ) mod N</div>
+          <p>
+            Locking knows the factors, so it knows φ(N) = (p−1)(q−1) and takes
+            Euler's shortcut: shrink the exponent first, then one modular
+            exponentiation lands on the key instantly.
+          </p>
+          <div class="eq">e = 2ᵗ mod φ(N)<br />key = gᵉ mod N</div>
+          <p>
+            Then it throws p, q and φ(N) away. Unlocking is left with only N, g
+            and t. With no factors there is no shortcut. The only known route to
+            the key is to actually walk the t squarings, one after another:
+          </p>
+          <div class="eq">x₀ = g<br />xᵢ = xᵢ₋₁² mod N<br />key = xₜ</div>
+          <p>
+            Each square needs the one before it, so the work is inherently
+            sequential: more cores, a GPU, splitting it up, none of it helps.
+            That unavoidable chain is the delay. (The Rivest-Shamir-Wagner
+            time-lock puzzle, 1996.)
+          </p>
+          <p>
+            <strong>The grid</strong> is that value, live. N is about 2048 bits
+            = 256 bytes, and the grid is 16×16 = 256 cells, one cell per byte of
+            <strong>x</strong>, the number currently being squared. Each cell's
+            brightness tracks its byte (0 dark → 255 bright); bytes near the top
+            of the range tint orange. Squaring mod N is an avalanche: nudge the
+            input and every bit of the output scrambles, so the whole grid
+            reshuffles on every frame. It refreshes once per batch of a few
+            thousand squarings, so between two frames the number has already
+            jumped thousands of steps. It isn't decoration played over the
+            computation; it is the computation.
+          </p>
+          <p>
+            How big is t? When you lock, it measures how many squarings per
+            second this machine manages and sets
+            <strong>t = rate × seconds</strong>. The wait is calibrated to the
+            device you lock on, and it is honest about hardware: unlock on
+            something much faster and it finishes sooner.
+          </p>
+          <p>
+            <strong>Thermal note.</strong> The squarings cannot be split across
+            cores, so unlocking pins a single core at full tilt. On a phone or a
+            thin laptop that core heats up and the chip throttles, which lowers
+            the squaring rate, so a long unlock can run slower than you picked.
+            A well-cooled machine holds its clock and stays on schedule.
+          </p>
+          <p>
+            The secret itself is encrypted with AES-GCM under
+            <strong>key = SHA-256(xₜ)</strong>. The reset/pause choice is mixed
+            into GCM's authenticated data, so flipping that flag in the token
+            makes the final decryption fail. You change the behaviour by
+            rewriting this page, not by editing the token.
+          </p>
+          <p>
+            <strong>Reset</strong> wipes all progress if you leave the tab, so
+            an impulse costs you the whole wait again;
+            <strong>pause</strong> only stops the clock. Either way the screen
+            is kept awake while it grinds.
+          </p>
+          <p>
+            <strong>Friction, not a vault.</strong> The token isn't a secret,
+            and faster hardware or code could solve it quicker. Everything runs
+            in your browser; nothing is ever sent anywhere.
+          </p>
+        </div>
+        <div class="morelink"><a href="#">← back</a></div>
+      </div>
+    </div>
+
+    <!-- live view blown up; the hero node is moved in and out of here -->
+    <div id="fs-overlay" hidden></div>
+
+    <script src="core.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

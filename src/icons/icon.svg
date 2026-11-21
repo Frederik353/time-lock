@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#111110"/>
+  <!-- row 0 -->
+  <rect x="72"  y="72"  width="104" height="104" fill="#edece6"/>
+  <rect x="204" y="72"  width="104" height="104" fill="#ff603f"/>
+  <rect x="336" y="72"  width="104" height="104" fill="#8f8c7f"/>
+  <!-- row 1 -->
+  <rect x="72"  y="204" width="104" height="104" fill="#5c5a51"/>
+  <rect x="204" y="204" width="104" height="104" fill="#cfcdc3"/>
+  <rect x="336" y="204" width="104" height="104" fill="#d23c1a"/>
+  <!-- row 2 -->
+  <rect x="72"  y="336" width="104" height="104" fill="#8f8c7f"/>
+  <rect x="204" y="336" width="104" height="104" fill="#edece6"/>
+  <rect x="336" y="336" width="104" height="104" fill="#cfcdc3"/>
+</svg>
