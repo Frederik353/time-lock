@@ -72,10 +72,15 @@
         calibrate: "calibrating on this device…",
         seal: "sealing…",
       };
+      // use a rate the background measured while they typed, if one's ready
+      // and still fresh; otherwise lockSecret calibrates inline as before.
+      if (CAL.inFlight) await CAL.inFlight;
       const res = await TL.lockSecret({
         plain,
         targetSec,
         mode,
+        rate: calFresh() ? CAL.rate : undefined,
+        minCalibrateMs: 350,
         onStatus: (s) => setLockScreen("working", STATUS[s]),
       });
       showToken(res.token, targetSec);
@@ -318,6 +323,50 @@
     el.className = "note" + (kind ? " " + kind : "");
   }
 
+  // ---------- background calibration ----------
+  const CAL = { rate: 0, at: 0, inFlight: null, spoiled: false };
+  const CAL_FRESH_MS = 90000;
+  function calFresh() {
+    return CAL.rate > 0 && Date.now() - CAL.at < CAL_FRESH_MS;
+  }
+  function repModulus() {
+    const bytes = Math.ceil((TL.PRIME_BITS * 2) / 8);
+    const a = crypto.getRandomValues(new Uint8Array(bytes));
+    a[0] |= 0x80;
+    a[bytes - 1] |= 1;
+    return { N: TL.bytesToBi(a), g: 3n };
+  }
+  async function warmCalibration() {
+    if (document.hidden || CAL.inFlight || calFresh()) return;
+    CAL.spoiled = false;
+    const { N, g } = repModulus();
+    CAL.inFlight = (async () => {
+      try {
+        const rate = await TL.benchmarkRate(N, g);
+        if (rate > 0 && !CAL.spoiled && !document.hidden) {
+          CAL.rate = rate;
+          CAL.at = Date.now();
+        }
+      } catch {
+      } finally {
+        CAL.inFlight = null;
+      }
+    })();
+    return CAL.inFlight;
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      CAL.spoiled = true;
+    } else if ($("plain").value && !calFresh()) {
+      warmCalibration();
+    }
+  });
+  let calDebounce = null;
+  $("plain").addEventListener("input", () => {
+    clearTimeout(calDebounce);
+    calDebounce = setTimeout(warmCalibration, 400);
+  });
+
   // ---------- wiring ----------
   $("lock-btn").addEventListener("click", lock);
   $("unlock-btn").addEventListener("click", unlock);
@@ -350,8 +399,6 @@
           return;
         }
         field.value = text;
-        // deliberately do NOT focus: on a phone that pops the keyboard.
-        // just drop the text in and notify any listeners
         field.dispatchEvent(new Event("input", { bubbles: true }));
         flash("ok", "Pasted");
       } catch (err) {
@@ -409,16 +456,20 @@
     }
   });
 
-  $("copy-btn").addEventListener("click", async () => {
+  async function copyLockToken() {
+    const el = $("lock-out");
+    if (!el.textContent) return;
     try {
-      await navigator.clipboard.writeText($("lock-out").textContent);
+      await navigator.clipboard.writeText(el.textContent);
       flashBtn("copy-btn");
       flash("copy-status", "Copied ✓");
     } catch {
-      selectText($("lock-out"));
+      selectText(el);
       flash("copy-status", "Press ⌘/Ctrl+C");
     }
-  });
+  }
+  $("copy-btn").addEventListener("click", copyLockToken);
+  $("lock-out").addEventListener("click", copyLockToken);
   $("copy-pw").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(revealedSecret);
@@ -478,9 +529,7 @@
   }
   window.addEventListener("hashchange", route);
   window.addEventListener("resize", queueFit);
-  window.addEventListener("orientationchange", () =>
-    setTimeout(fitDevice, 80),
-  );
+  window.addEventListener("orientationchange", () => setTimeout(fitDevice, 80));
   window.addEventListener("load", queueFit);
   if (document.fonts && document.fonts.ready)
     document.fonts.ready.then(fitDevice);

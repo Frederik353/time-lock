@@ -1,10 +1,7 @@
 "use strict";
 /* ============================================================
    Time Lock - core
-   Pure crypto + puzzle logic. No DOM, no styling. Shared by
-   every frontend (app.js = OP-1 look, txt.js = plain look) so
-   there is one source of truth and tokens stay cross-compatible.
-   Exposed as the global `TimeLock`.
+   Pure crypto + puzzle logic.
    ============================================================ */
 (function (global) {
   const enc = new TextEncoder();
@@ -15,7 +12,7 @@
     STRICT = 0,
     LENIENT = 1;
 
-  // ---------- small utilities ----------
+  // ---------- utils ----------
   function b64enc(bytes) {
     let s = "";
     for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
@@ -32,12 +29,14 @@
     let hex = bi.toString(16);
     if (hex.length % 2) hex = "0" + hex;
     const a = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < a.length; i++) a[i] = parseInt(hex.substr(i * 2, 2), 16);
+    for (let i = 0; i < a.length; i++)
+      a[i] = parseInt(hex.substr(i * 2, 2), 16);
     return a;
   }
   function bytesToBi(a) {
     let hex = "";
-    for (let i = 0; i < a.length; i++) hex += a[i].toString(16).padStart(2, "0");
+    for (let i = 0; i < a.length; i++)
+      hex += a[i].toString(16).padStart(2, "0");
     return hex === "" ? 0n : BigInt("0x" + hex);
   }
   function padTo(bytes, len) {
@@ -55,7 +54,11 @@
     if (m >= 60) {
       const h = Math.floor(m / 60);
       return (
-        h + ":" + String(m % 60).padStart(2, "0") + ":" + String(s).padStart(2, "0")
+        h +
+        ":" +
+        String(m % 60).padStart(2, "0") +
+        ":" +
+        String(s).padStart(2, "0")
       );
     }
     return m + ":" + String(s).padStart(2, "0");
@@ -145,15 +148,31 @@
       "decrypt",
     ]);
   }
-  function benchmarkRate(N, g) {
-    let x = g % N,
-      count = 0;
+  async function benchmarkRate(N, g) {
+    let x = g % N;
+    let w0 = performance.now();
+    do {
+      for (let i = 0; i < 2000; i++) x = (x * x) % N;
+    } while (performance.now() - w0 < 110);
+
+    // Size the batch the way the unlock does (~70ms of work per batch).
+    let p0 = performance.now(),
+      pc = 0;
+    do {
+      for (let i = 0; i < 2000; i++) x = (x * x) % N;
+      pc += 2000;
+    } while (performance.now() - p0 < 70);
+    const probeRate = pc / ((performance.now() - p0) / 1000);
+    const batch = Math.max(1, Math.floor(probeRate * 0.07));
+
+    let done = 0;
     const t0 = performance.now();
     do {
-      for (let i = 0; i < 4000; i++) x = (x * x) % N;
-      count += 4000;
-    } while (performance.now() - t0 < 350);
-    return count / ((performance.now() - t0) / 1000);
+      for (let i = 0; i < batch; i++) x = (x * x) % N;
+      done += batch;
+      await sleep(0);
+    } while (performance.now() - t0 < 450);
+    return done / ((performance.now() - t0) / 1000);
   }
 
   // ---------- token errors (frontends map .code to their own wording) ----------
@@ -161,7 +180,7 @@
     constructor(code, message) {
       super(message || code);
       this.name = "TokenError";
-      this.code = code; // "not-token" | "bad-version" | "malformed"
+      this.code = code;
     }
   }
 
@@ -189,9 +208,6 @@
   }
 
   // ---------- LOCK ----------
-  // opts: { plain, targetSec, mode, onStatus? }
-  // onStatus is called with "keys" | "calibrate" | "seal".
-  // returns { token, t, targetSec }.
   async function lockSecret(opts) {
     const plain = opts.plain;
     const targetSec = opts.targetSec;
@@ -210,9 +226,17 @@
     const g = 2n + randBelow(N - 3n);
 
     onStatus("calibrate");
+    const calStart = performance.now();
     await sleep(30);
-    const rate = benchmarkRate(N, g);
-    let t = Math.round(rate * targetSec);
+    const rate =
+      typeof opts.rate === "number" && opts.rate > 0
+        ? opts.rate
+        : await benchmarkRate(N, g);
+    const minCal = opts.minCalibrateMs > 0 ? opts.minCalibrateMs : 0;
+    const calElapsed = performance.now() - calStart;
+    if (calElapsed < minCal) await sleep(minCal - calElapsed);
+    const MARGIN = 1.06;
+    let t = Math.round(rate * targetSec * MARGIN);
     if (t < 1) t = 1;
 
     onStatus("seal");
@@ -235,25 +259,28 @@
       iv: b64enc(iv),
       ct: b64enc(new Uint8Array(ctBuf)),
     };
-    return { token: "TL2." + b64enc(enc.encode(JSON.stringify(bundle))), t, targetSec };
+    return {
+      token: "TL2." + b64enc(enc.encode(JSON.stringify(bundle))),
+      t,
+      targetSec,
+    };
   }
 
-  // ---------- UNLOCK (the sequential squaring) ----------
-  // parsed: output of parseToken.
-  // hooks: {
-  //   onProgress({ done, t, x, elapsed, rate, remaining, pct }),
-  //   onPause(isPaused),        // lenient mode, tab hidden/shown
-  //   shouldCancel() -> bool,   // user asked to cancel
-  //   shouldReset()  -> bool,   // strict mode: user left the page
-  //   isHidden()     -> bool,   // tab visibility (default: document.hidden)
-  // }
-  // returns { status: "ok", secret } | { status: "reset" | "cancelled" | "tamper" }
+  // ---------- UNLOCK ----------
   async function solve(parsed, hooks) {
     hooks = hooks || {};
     const onProgress = hooks.onProgress || function () {};
     const onPause = hooks.onPause || function () {};
-    const shouldCancel = hooks.shouldCancel || function () { return false; };
-    const shouldReset = hooks.shouldReset || function () { return false; };
+    const shouldCancel =
+      hooks.shouldCancel ||
+      function () {
+        return false;
+      };
+    const shouldReset =
+      hooks.shouldReset ||
+      function () {
+        return false;
+      };
     const isHidden =
       hooks.isHidden ||
       function () {

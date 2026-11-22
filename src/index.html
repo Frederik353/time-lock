@@ -500,10 +500,17 @@
       </div>
     </div>
 
-    <!-- live view blown up; the hero node is moved in and out of here -->
     <div id="fs-overlay" hidden></div>
 
     <script src="core.js"></script>
     <script src="app.js"></script>
+    <script>
+      // register the offline cache
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js").catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

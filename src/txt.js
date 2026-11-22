@@ -1,6 +1,4 @@
 "use strict";
-/* Time Lock - txt frontend UI. Plain-text look. Uses the shared `TimeLock`
-   core (core.js) for all crypto; this file is DOM/presentation only. */
 (function () {
   const $ = (id) => document.getElementById(id);
   const TL = window.TimeLock;

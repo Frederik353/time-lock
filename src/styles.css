@@ -314,8 +314,6 @@ section.pane {
   min-height: 26px;
   justify-content: flex-start;
 }
-/* take the copy status out of flow so showing "Copied" never changes the
-   foot height (which would shift the screen above it) */
 #copy-status,
 #copy-pw-status {
   position: absolute;
@@ -326,22 +324,13 @@ section.pane {
 
 .hero {
   display: grid;
-  /* default: stacked (grid over readout), used when the display box is taller
      than it is wide */
   grid-template-columns: 1fr;
   gap: clamp(10px, 4cqh, 22px);
   align-items: center;
 }
-/* Put the grid beside the readout whenever the display box is wider than it is
-   tall. The switch is driven by the box's own aspect ratio (it IS a size
-   container), so it is correct for every device/orientation that produced the
-   box rather than guessed from the viewport. */
 @container screen (min-aspect-ratio: 9 / 10) {
   .hero {
-    /* Explicit fractional split (not `auto 1fr`): an `auto` grid track sizes
-       the grid column to the canvas's intrinsic pixel size, which stole almost
-       all the width and collapsed the readout column so narrow the timer spilled
-       out. minmax(0,..) on both tracks guarantees the readout a real share. */
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     gap: clamp(12px, 4cqw, 44px);
   }
@@ -586,8 +575,6 @@ body {
   transform-origin: center center;
 }
 body.fit {
-  /* fill the window with the app surface rather than the darker page
-     background, so no size ever shows a dark letterbox around the unit */
   background: var(--surface);
 }
 @media (display-mode: standalone) {
@@ -596,11 +583,6 @@ body.fit {
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   }
 }
-/* Small portrait phones: a full-width scrolling page (no fixed kiosk), so the
-   unit fills the window width instead of being shrunk to fit the height. The
-   content flows top-to-bottom and the page scrolls if it is taller than the
-   viewport, so nothing is clipped. The large (>=700) and sideways-phone
-   kiosk blocks below reinstate the fixed fill layout where it makes sense. */
 body.fit .wrap {
   max-width: none;
   margin: 0;
@@ -618,11 +600,6 @@ body.fit #view-main {
   max-width: 900px;
   flex: 0 0 auto;
 }
-/* In fit mode the unit fills the window and should never read as a floating
-   device-within-a-device, at ANY size. The narrow (<=560px) and tablet-up
-   (>=700px) breakpoints already shed the card chrome; strip it here too so the
-   561-699px band (and every other fit size) loses the border, rounded corners,
-   shadow and corner ticks instead of showing them again. */
 body.fit #view-main {
   border: 0;
   border-radius: 0;
@@ -638,10 +615,6 @@ body.fit #view-main::after {
   width: 100%;
   margin-inline: auto;
 }
-/* The math / "how it works" page scrolls normally (it is not the fit kiosk),
-   but it should wear the same full-bleed surface as the main unit: no floating
-   device card (border, rounded corners, shadow, corner ticks) and no darker
-   page letterbox around it. */
 body.mathview {
   background: var(--surface);
 }
@@ -927,7 +900,8 @@ button.paste.err {
   justify-content: center;
   gap: 9px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: clamp(0.8rem, 3cqi, 1.15rem);
+  font-weight: 600;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: #6f6b60;
@@ -973,6 +947,21 @@ button.paste.err {
   word-break: break-all;
   overflow-wrap: anywhere;
 }
+#lock-out {
+  cursor: pointer;
+  font-size: 1rem;
+  text-decoration: underline dotted rgba(239, 236, 226, 0.35);
+  text-underline-offset: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+#lock-out::selection {
+  background: #efece2;
+  color: #14130f;
+}
+#lock-out::-moz-selection {
+  background: #efece2;
+  color: #14130f;
+}
 .pw-out {
   font-size: 1rem;
   letter-spacing: 0.06em;
@@ -989,10 +978,7 @@ button.paste.err {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  /* named size container so the hero can lay itself out by the display box's
-     own width AND height (cqw/cqh), not the viewport's. all the live screen's
-     responsive rules key off this box, so it never clips regardless of which
-     device/orientation produced the box. */
+ 
   container: screen / size;
   background: var(--screen);
   border: 1px solid #000;
@@ -1033,9 +1019,19 @@ button.paste.err {
   pointer-events: none;
   transition: opacity 0.2s;
 }
-.screen.can-fs:hover .fs {
+.screen.can-fs .fs {
   opacity: 0.65;
   pointer-events: auto;
+}
+@media (hover: hover) {
+  .screen.can-fs .fs {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .screen.can-fs:hover .fs {
+    opacity: 0.65;
+    pointer-events: auto;
+  }
 }
 .screen.fs-on .fs {
   opacity: 0.85;
@@ -1149,8 +1145,6 @@ body.fs-lock {
 #fs-overlay .viz-cap {
   font-size: 0.8rem;
 }
-/* fullscreen bar: show the full track (outline + lighter empty) so you can
-   see where 100% is at a glance, not just read the percentage */
 #fs-overlay .prog {
   height: 16px;
   border-radius: 5px;
@@ -1169,8 +1163,6 @@ body.fs-lock {
 #fs-overlay .prog > span {
   box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.55);
 }
-/* cap the pct/elapsed row to the same width as the bar so the right edge of
-   the elapsed time lines up with the end of the progress bar */
 #fs-overlay .count .foot {
   width: min(100%, 440px);
 }
@@ -1188,8 +1180,6 @@ body.fs-lock {
     height: min(62vw, 380px);
   }
 }
-/* phone in landscape: height is the tight dimension, so grow the grid to
-   fill it; keep the normal viz-left / count-right layout */
 @media (orientation: landscape) and (max-height: 560px) {
   #fs-overlay .hero {
     gap: clamp(32px, 7vw, 80px);
@@ -1200,8 +1190,6 @@ body.fs-lock {
   }
 }
 #viz {
-  /* size is governed by the .screen container rules further down; these are
-     just the display-screen looks (dark inset tile) */
   height: auto;
   aspect-ratio: 1 / 1;
   border: 1px solid #000;
@@ -1236,7 +1224,8 @@ body.fs-lock {
   background: var(--screen);
   border-radius: 15px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: clamp(0.8rem, 3cqi, 1.15rem);
+  font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: #6f6b60;
@@ -1444,13 +1433,6 @@ textarea::-webkit-scrollbar-track {
   }
 }
 
-/* Tablet, laptop and desktop: don't scale the fixed phone card up and float
-   it in a letterbox. Shed the outer "device" chrome (border, corners,
-   shadow) so it stops reading as a device-within-a-device, let the unit
-   fill the window, and grow the display + controls to actually use the
-   space. Width is capped and centered so it never gets oversized on a wide
-   monitor, with the surface filling the gutters. JS skips the scale
-   transform at these sizes to match. */
 @media (min-width: 700px) and (min-height: 561px) {
   body.fit .wrap {
     position: fixed;
@@ -1466,7 +1448,6 @@ textarea::-webkit-scrollbar-track {
     max-width: 1100px;
     height: 100%;
     margin: 0 auto;
-    /* full-bleed app surface instead of a floating card */
     border: 0;
     border-radius: 0;
     box-shadow: none;
@@ -1479,10 +1460,6 @@ textarea::-webkit-scrollbar-track {
     display: none;
   }
 
-  /* let the panel take all the height left under the header, and give its
-     grid row a definite 1fr so that height flows down to the pane, display
-     and screen; without it the screen's flex:1 collapses and the grid and
-     timer spill out of the display box */
   body.fit #view-main > .panels {
     flex: 1 1 auto;
     min-height: 0;
@@ -1513,10 +1490,6 @@ textarea::-webkit-scrollbar-track {
   }
 }
 
-/* Landscape tablet / laptop / desktop: controls on the left, the display on
-   the right (its larger share). The screen is wide, so the hero sits the
-   grid beside the readout. The timer is sized against its own column width
-   (cqw) so it scales down to fit a narrow column instead of clipping. */
 @media (min-width: 700px) and (min-height: 561px) and (orientation: landscape) {
   body.fit section.pane {
     grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.5fr);
@@ -1526,9 +1499,6 @@ textarea::-webkit-scrollbar-track {
   }
 }
 
-/* Portrait tablet (iPad upright): the outer page stays stacked (controls on
-   top, display below), but the display box itself is wider than it is tall, so
-   the hero inside it is laid out by the .screen container rules, not here. */
 @media (min-width: 700px) and (orientation: portrait) {
   body.fit section.pane {
     grid-template-columns: 1fr;
@@ -1537,10 +1507,6 @@ textarea::-webkit-scrollbar-track {
   }
 }
 
-/* Phone held sideways: drop the uniform scale-to-fit (JS skips it too) and
-   lay the unit out to fill the whole screen. Brand + tabs share the top
-   row, the panel fills the rest, and the display screen grows to use the
-   height while the controls sit beside it, so we use the full width. */
 @media (orientation: landscape) and (max-height: 560px) {
   body.fit .wrap {
     position: fixed;
@@ -1597,32 +1563,19 @@ textarea::-webkit-scrollbar-track {
     min-height: 0;
     gap: 10px;
   }
-  /* the lock tab has more fields than fit a short strip: let them scroll
-     and keep the primary action pinned to the bottom so it never slips
-     below the screen */
   .controls {
     overflow-y: auto;
     padding-right: 2px;
   }
-  /* overflow-y:auto also clips the x-axis, which would cut the focus
-     outline off fields sitting flush to the edge; draw the ring inset so
-     it stays inside the field instead of overflowing the scroll box */
   .controls :focus-visible {
     outline-offset: -2px;
   }
   .controls > .row {
     position: sticky;
-    /* overhang the bottom by 1px so the scroll container clips the row's
-       lower edge instead of leaving a sub-pixel line of scrolled content
-       showing beneath it */
     bottom: -1px;
     margin-top: auto;
     padding: 10px 0 1px;
-    background: linear-gradient(
-      to top,
-      var(--surface) 70%,
-      transparent
-    );
+    background: linear-gradient(to top, var(--surface) 70%, transparent);
   }
   .display .field {
     flex: 1;
@@ -1633,10 +1586,6 @@ textarea::-webkit-scrollbar-track {
     flex: 1;
     min-height: 0;
   }
-  /* the grid + timer inside the display grow to fill this short wide box via
-     the .screen container rules, not here */
-  /* keep the math-page link reachable: move it into the top-right header
-     row next to the tabs instead of a bottom bar */
   #view-main > .morelink {
     grid-area: more;
     align-self: center;
@@ -1646,17 +1595,6 @@ textarea::-webkit-scrollbar-track {
   }
 }
 
-/* ====================================================================
-   LIVE DISPLAY SIZING — governed entirely by the .screen box (cqw/cqh).
-   One coherent set of rules keyed off the display box itself, so the byte
-   grid and the timer fill the box and never clip, whatever device or
-   orientation produced that box. (.screen #viz / .screen .count .v beat the
-   plain base rules on specificity; #fs-overlay keeps its own fullscreen
-   sizing and is unaffected.)
-   ==================================================================== */
-
-/* Stacked box (taller than wide): grid on top, timer below. Cap the square
-   grid by height so the caption, timer and footer below it still fit. */
 .screen #viz {
   width: min(94cqw, 52cqh);
   max-width: none;
@@ -1665,21 +1603,12 @@ textarea::-webkit-scrollbar-track {
   font-size: clamp(1.3rem, min(22cqi, 15cqh), 5.4rem);
 }
 
-/* Wide box (wider than tall): grid beside the timer. The grid grows to use the
-   box height (so tall-ish boxes don't leave big black bands), bounded in width
-   so the readout column keeps room. The timer is sized against its own column
-   width so it scales to fit instead of crowding the edge. */
+
 @container screen (min-aspect-ratio: 9 / 10) {
   .screen #viz {
-    /* fill the grid's left column, but stay square and never taller than the
-       box (90cqh) so a tall-ish wide box keeps the grid bounded */
     width: min(100%, 86cqh);
   }
   .screen .count .v {
-    /* sized against the readout column's own width (cqi) so a long
-       h:mm:ss string scales down to fit instead of spilling past the box.
-       low coefficient + low floor so even a many-digit hour count and a
-       narrow column never force an ink overflow */
     font-size: clamp(0.95rem, 16cqi, 4.6rem);
   }
 }
