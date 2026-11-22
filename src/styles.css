@@ -147,6 +147,7 @@ header .meta {
 }
 
 textarea,
+input[type="password"],
 input[type="number"] {
   width: 100%;
   min-width: 0;
@@ -869,13 +870,7 @@ button.minor:active {
   padding-right: 58px;
 }
 #plain {
-  -webkit-text-security: disc;
-  text-security: disc;
   padding-right: 100px;
-}
-#plain.show {
-  -webkit-text-security: none;
-  text-security: none;
 }
 button.paste.eye {
   right: 58px;

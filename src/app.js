@@ -408,9 +408,10 @@
   }
   wirePaste("paste-btn", "token-in", true);
   wirePaste("paste-secret-btn", "plain", false);
-  // eye toggle: reveal/hide the masked secret you're typing
   $("toggle-secret").addEventListener("click", () => {
-    const shown = $("plain").classList.toggle("show");
+    const el = $("plain");
+    const shown = el.type === "password";
+    el.type = shown ? "text" : "password";
     const t = $("toggle-secret");
     t.setAttribute("aria-pressed", String(shown));
     const lbl = shown ? "Hide secret" : "Reveal secret";
