@@ -63,6 +63,18 @@
     }
     return m + ":" + String(s).padStart(2, "0");
   }
+  function fmtEta(sec) {
+    if (!isFinite(sec) || sec < 0) return "--:--";
+    if (sec < 3600) return fmtTime(sec);
+    const H = 3600,
+      D = 86400,
+      Y = 31557600; // Julian year
+    const b = (v, u) =>
+      "~" + (v < 10 ? Math.round(v * 10) / 10 : Math.round(v)) + u;
+    if (sec < D) return b(sec / H, "h");
+    if (sec < Y) return b(sec / D, "d");
+    return b(sec / Y, "y");
+  }
 
   // ---------- number theory ----------
   function modpow(base, exp, mod) {
@@ -155,7 +167,6 @@
       for (let i = 0; i < 2000; i++) x = (x * x) % N;
     } while (performance.now() - w0 < 110);
 
-    // Size the batch the way the unlock does (~70ms of work per batch).
     let p0 = performance.now(),
       pc = 0;
     do {
@@ -175,7 +186,6 @@
     return done / ((performance.now() - t0) / 1000);
   }
 
-  // ---------- token errors (frontends map .code to their own wording) ----------
   class TokenError extends Error {
     constructor(code, message) {
       super(message || code);
@@ -302,7 +312,7 @@
     let batch = Math.max(1, Math.floor(probeRate * 0.07));
 
     let activeMs = 0,
-      lastResume = performance.now(),
+      lastResume = probeStart,
       paused = false;
 
     while (done < t && !shouldCancel() && !shouldReset()) {
@@ -364,6 +374,7 @@
     padTo,
     sleep,
     fmtTime,
+    fmtEta,
     modpow,
     genPrime,
     deriveAesKey,

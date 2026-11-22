@@ -2,7 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const TL = window.TimeLock;
-  const { STRICT, LENIENT, fmtTime, biToBytes, padTo } = TL;
+  const { STRICT, LENIENT, fmtTime, fmtEta, biToBytes, padTo } = TL;
 
   // ---------- live puzzle-state visualization ----------
   const GRID = 16,
@@ -57,13 +57,12 @@
       setLockScreen("error", "type a secret first");
       return;
     }
-    const minutes = parseFloat($("minutes").value);
-    if (!(minutes > 0)) {
+    const targetSec = parseInt($("dur").value, 10);
+    if (!(targetSec > 0)) {
       setLockScreen("error", "enter a valid duration");
       return;
     }
     const mode = pickedMode;
-    const targetSec = minutes * 60;
     const btn = $("lock-btn");
     btn.disabled = true;
     try {
@@ -109,7 +108,7 @@
   }
   function showToken(tok, targetSec) {
     $("lock-out").textContent = tok;
-    $("lock-head").textContent = "✓ locked · ≈ " + fmtTime(targetSec);
+    $("lock-head").textContent = "✓ locked · ≈ " + fmtEta(targetSec);
     setLockScreen("done");
   }
 
@@ -277,7 +276,7 @@
             p.pct >= 100 ? "100%" : p.pct.toFixed(1) + "%";
           if (isFinite(p.elapsed))
             $("st-elapsed").textContent = fmtTime(p.elapsed);
-          $("st-eta").textContent = fmtTime(p.remaining);
+          $("st-eta").textContent = fmtEta(p.remaining);
           drawState(p.x);
         },
         onPause: (paused) =>
@@ -409,6 +408,15 @@
   }
   wirePaste("paste-btn", "token-in", true);
   wirePaste("paste-secret-btn", "plain", false);
+  // eye toggle: reveal/hide the masked secret you're typing
+  $("toggle-secret").addEventListener("click", () => {
+    const shown = $("plain").classList.toggle("show");
+    const t = $("toggle-secret");
+    t.setAttribute("aria-pressed", String(shown));
+    const lbl = shown ? "Hide secret" : "Reveal secret";
+    t.setAttribute("aria-label", lbl);
+    t.setAttribute("title", lbl);
+  });
   $("fs-btn").addEventListener("click", (e) => {
     e.stopPropagation();
     setFullscreen();
@@ -429,15 +437,15 @@
   $("dur-chips").addEventListener("click", (e) => {
     const b = e.target.closest(".preset");
     if (!b) return;
-    $("minutes").value = b.dataset.min;
+    $("dur").value = b.dataset.sec;
     pressOne($("dur-chips"), b);
   });
-  $("minutes").addEventListener("input", () => {
-    const v = $("minutes").value;
+  $("dur").addEventListener("change", () => {
+    const v = $("dur").value;
     $("dur-chips")
       .querySelectorAll(".preset")
       .forEach((p) =>
-        p.setAttribute("aria-pressed", String(p.dataset.min === v)),
+        p.setAttribute("aria-pressed", String(p.dataset.sec === v)),
       );
   });
   $("mode-chips").addEventListener("click", (e) => {

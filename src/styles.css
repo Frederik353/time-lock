@@ -175,9 +175,36 @@ button:focus-visible {
   gap: 12px;
   flex-wrap: wrap;
 }
-.dur input {
-  max-width: 92px;
-  text-align: center;
+.dur .pick {
+  position: relative;
+  display: inline-flex;
+}
+.dur select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 112px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 30px 9px 12px;
+  cursor: pointer;
+}
+.dur .pick::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  margin-top: -4px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  pointer-events: none;
 }
 .presets {
   display: flex;
@@ -840,6 +867,27 @@ button.minor:active {
 }
 .paste-field textarea {
   padding-right: 58px;
+}
+#plain {
+  -webkit-text-security: disc;
+  text-security: disc;
+  padding-right: 100px;
+}
+#plain.show {
+  -webkit-text-security: none;
+  text-security: none;
+}
+button.paste.eye {
+  right: 58px;
+}
+button.paste.eye .ic-off {
+  display: none;
+}
+button.paste.eye[aria-pressed="true"] .ic-on {
+  display: none;
+}
+button.paste.eye[aria-pressed="true"] .ic-off {
+  display: inline-flex;
 }
 #panel-unlock .paste-field {
   flex: 1 1 auto;
