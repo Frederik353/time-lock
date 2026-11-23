@@ -71,8 +71,6 @@
         calibrate: "calibrating on this device…",
         seal: "sealing…",
       };
-      // use a rate the background measured while they typed, if one's ready
-      // and still fresh; otherwise lockSecret calibrates inline as before.
       if (CAL.inFlight) await CAL.inFlight;
       const res = await TL.lockSecret({
         plain,
@@ -226,11 +224,6 @@
     const el = $("view-main");
     if (!el || el.hidden) return;
     if (document.body.classList.contains("fs-lock")) return;
-    // The unit is laid out to fill the window by CSS at every size (kiosk
-    // fill on large/short screens, a full-width scrolling page on small
-    // portrait phones). It is never scaled up and floated in a letterbox,
-    // and never shrunk to fit height (which used to make it too narrow on
-    // small phones), so there is no transform to apply here.
     el.style.transform = "none";
   }
   function queueFit() {
@@ -393,6 +386,7 @@
           throw new Error("no api");
         let text = await navigator.clipboard.readText();
         if (trim) text = text.trim();
+        if (field.tagName === "INPUT") text = text.replace(/[\r\n]+/g, " ");
         if (!text) {
           flash("err", "Clipboard is empty");
           return;
@@ -417,6 +411,35 @@
     const lbl = shown ? "Hide secret" : "Reveal secret";
     t.setAttribute("aria-label", lbl);
     t.setAttribute("title", lbl);
+  });
+  $("plain").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      lock();
+    }
+  });
+  $("token-in").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      unlock();
+    }
+  });
+  $("plain").addEventListener("paste", (e) => {
+    const cd = e.clipboardData || window.clipboardData;
+    if (!cd) return;
+    const text = cd.getData("text");
+    if (!/[\r\n]/.test(text)) return;
+    e.preventDefault();
+    const clean = text.replace(/[\r\n]+/g, " ");
+    const el = $("plain");
+    const s = el.selectionStart == null ? el.value.length : el.selectionStart;
+    const en = el.selectionEnd == null ? el.value.length : el.selectionEnd;
+    el.value = el.value.slice(0, s) + clean + el.value.slice(en);
+    const pos = s + clean.length;
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch (_) {}
+    el.dispatchEvent(new Event("input", { bubbles: true }));
   });
   $("fs-btn").addEventListener("click", (e) => {
     e.stopPropagation();
